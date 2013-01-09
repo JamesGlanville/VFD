@@ -1,5 +1,8 @@
 #include "TimerOne.h"
+#include <Wire.h>
+#include "RTClib.h"
 
+RTC_DS1307 RTC;
 
 int load = 5;
 int clk = 4;
@@ -17,7 +20,18 @@ boolean lock =false;
 volatile  int disp[]={
   0,0,0,10,0,0,10,0,0};
 
-void setup() {                
+void setup() {         
+  Wire.begin();
+  RTC.begin();
+  if (1==0){
+    DateTime now = DateTime(__DATE__, __TIME__);
+    DateTime future(now.unixtime()+15);
+    
+ //   DateTime now = RTC.now();
+ //   DateTime then(now.unixtime() + 3600); // one hour later
+ //   RTC.adjust(then);   RTC.adjust(DateTime(__DATE__, __TIME__));}  
+  RTC.adjust(future);
+}
   pinMode(load, OUTPUT);     
   pinMode(clk, OUTPUT);     
   pinMode(din, OUTPUT); 
@@ -27,12 +41,21 @@ void setup() {
   digitalWrite(din,LOW);  
   analogWrite(bleh,35);
   Serial.begin(57600);
-  Timer1.initialize(1000000);         // initialize timer1, and set a 1/2 second period
-  Timer1.pwm(3, 512);                // setup pwm on pin 9, 50% duty cycle
-  Timer1.attachInterrupt(callback);  // attaches callback() as 
+  Timer1.initialize(1000000);        
+  Timer1.pwm(3, 512);
+  Timer1.attachInterrupt(callback);
+  getRTCtime();
   callback();
+  
 }
 
+void getRTCtime(){
+         DateTime now = RTC.now();
+       seconds=now.second();
+       minute=now.minute();
+       hour=now.hour();
+ 
+}
 
 void callback(){
   if (!lock){
@@ -54,6 +77,10 @@ void callback(){
     if (hour==24){
       hour=0;
     }
+  /*  if(seconds==1)
+    {
+      getRTCtime();
+   }*/
     disp[1]=hour/10;
     disp[2]=hour%10;
     disp[4]=minute/10;
@@ -63,10 +90,12 @@ void callback(){
   }
 }
 void loop() {
+  if(millis()%1000==0){getRTCtime();}
   for (int i=0;i<9;i++)
   {
     RefreshIV18(disp[i],i);
   }
+  
   if ( Serial.available() )
   {
     lock=true;
