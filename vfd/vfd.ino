@@ -15,7 +15,6 @@ volatile int hour=0;
 volatile int minute=0;
 volatile int seconds=0;
 volatile boolean kill=false;
-boolean lock =false;
 
 volatile  int disp[]={
   0,0,0,10,0,0,10,0,0};
@@ -23,14 +22,12 @@ volatile  int disp[]={
 void setup() {         
   Wire.begin();
   RTC.begin();
-  if (1==0){
+  if (0==1){
     DateTime now = DateTime(__DATE__, __TIME__);
-    DateTime future(now.unixtime()+15);
-    
- //   DateTime now = RTC.now();
- //   DateTime then(now.unixtime() + 3600); // one hour later
- //   RTC.adjust(then);   RTC.adjust(DateTime(__DATE__, __TIME__));}  
-  RTC.adjust(future);
+    DateTime future(now.unixtime()+12+3600-3600);
+    RTC.adjust(future);
+    RTC.setSqwOutLevel(HIGH);
+    RTC.setSqwOutSignal();
 }
   pinMode(load, OUTPUT);     
   pinMode(clk, OUTPUT);     
@@ -43,10 +40,12 @@ void setup() {
   Serial.begin(57600);
   Timer1.initialize(1000000);        
   Timer1.pwm(3, 512);
-  Timer1.attachInterrupt(callback);
+  //Timer1.attachInterrupt(callback);
   getRTCtime();
-  callback();
+  tick();
   
+  attachInterrupt(0,tick,RISING);
+
 }
 
 void getRTCtime(){
@@ -57,8 +56,7 @@ void getRTCtime(){
  
 }
 
-void callback(){
-  if (!lock){
+void tick(){
     if (disp[0]==0){
       disp[0]=11;
     }
@@ -87,18 +85,16 @@ void callback(){
     disp[5]=minute%10;
     disp[7]=seconds/10;
     disp[8]=seconds%10;
-  }
 }
 void loop() {
-  if(millis()%1000==0){getRTCtime();}
+  //if(millis()%1000==0){getRTCtime();}
   for (int i=0;i<9;i++)
   {
     RefreshIV18(disp[i],i);
   }
   
-  if ( Serial.available() )
+/*  if ( Serial.available() )
   {
-    lock=true;
     char c = toupper(Serial.read());
 
     if ( c == 'T')
@@ -110,8 +106,7 @@ void loop() {
       seconds = 10 * (Serial.read()-'0');
       seconds += Serial.read()-'0';
     }
-  }
-  lock=false;
+  }*/
 }
 
 void RefreshIV18(int number,int place) //decimal point is out14 (i think, wibbly bottom one)
